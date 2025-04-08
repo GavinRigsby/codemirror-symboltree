@@ -1,0 +1,23 @@
+{
+  "name": "codemirror-symboltree",
+  "version": "1.0.0",
+  "description": "Shows a symbol tree in the gutter of the codemirror editor",
+  "main": "index.ts",
+  "scripts": {
+		"build": "tsc",
+    "start": "node ./dist/index.js"
+	},
+  "author": {
+    "name": "Gavin Rigsby",
+    "email": "gavinrigsby@outlook.com"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/lint": "^6.8.5",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.5",
+    "@lezer/common": "^1.2.3",
+    "@lezer/highlight": "^1.2.1"
+  }
+}
