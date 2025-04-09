@@ -1,6 +1,6 @@
 {
   "name": "@rigstech/codemirror-symboltree",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Shows a symbol tree in the gutter of the codemirror editor",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -28,7 +28,7 @@
     "name": "Gavin Rigsby",
     "email": "gavinrigsby@outlook.com"
   },
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@codemirror/language": "^6.11.0",
     "@codemirror/lint": "^6.8.5",
