@@ -1,15 +1,3 @@
-export type SymbolType = 
-  | 'interface'
-  | 'class'
-  | 'function'
-  | 'method'
-  | 'property'
-  | 'variable'
-  | 'constant'
-  | 'namespace'
-  | 'enum'
-  | 'constructor';
-
 export interface SymbolNode {
     name: string;
     children?: SymbolNode[];
@@ -17,40 +5,38 @@ export interface SymbolNode {
     range: number[];
 }
 
-export interface TreeNodeEvent {
+export interface NodeMouseEvent {
     node: SymbolNode;
     event: MouseEvent;
-    expanded?: boolean;
-    selected?: boolean;
-  }
-  
-export interface TreeNodeEventHandlers {
-onClick?: (event: TreeNodeEvent) => void;
-onDoubleClick?: (event: TreeNodeEvent) => void;
-onContextMenu?: (event: TreeNodeEvent) => void;
-onExpand?: (event: TreeNodeEvent) => void;
-onCollapse?: (event: TreeNodeEvent) => void;
-onSelect?: (event: TreeNodeEvent) => void;
-onHover?: (event: TreeNodeEvent) => void;
-onBlur?: (event: TreeNodeEvent) => void;
-onKeyDown?: (event: KeyboardEvent & { node: SymbolNode }) => void;
 }
-  
-export type TreeNodeEventHandler = (node: SymbolNode, event: MouseEvent) => void;
+
+export interface NodeKeyboardEvent {
+    node: SymbolNode;
+    event: KeyboardEvent;
+}
+export interface TreeNodeEventHandlers {
+onClick?: (event: NodeMouseEvent) => void;
+onDoubleClick?: (event: NodeMouseEvent) => void;
+onContextMenu?: (event: NodeMouseEvent) => void;
+onExpand?: (event: NodeMouseEvent) => void;
+onCollapse?: (event: NodeMouseEvent) => void;
+onSelect?: (event: NodeMouseEvent) => void;
+onHover?: (event: NodeMouseEvent) => void;
+onBlur?: (event: NodeMouseEvent) => void;
+onKeyDown?: (event: NodeKeyboardEvent) => void;
+}
 
 export type SymbolTreeOptions = {
     visible: boolean,
     side: 'left' | 'right',
-    onNodeClick?: TreeNodeEventHandler;
-    onNodeContextMenu?: TreeNodeEventHandler;
+    eventHandlers? : TreeNodeEventHandlers,
     
 }
 
 export type SymbolTreeOptionInputs = {
     visible?: boolean,
     side?: 'left' | 'right',
-    onNodeClick?: TreeNodeEventHandler;
-    onNodeContextMenu?: TreeNodeEventHandler;
+    eventHandlers?: TreeNodeEventHandlers
 }
 
 export const defaultSymbolTreeOptions : SymbolTreeOptions = {

@@ -15,9 +15,9 @@ export class TreeView {
         this.render(data);
     }
 
-    private createNodeElement(node: SymbolNode): HTMLElement {
+    private createNodeElement(node: SymbolNode, path: string = "root"): HTMLElement {
+
         const nodeContainer = document.createElement('div');
-        nodeContainer.style.userSelect = 'none';
 
         const nodeContent = document.createElement('div');
         nodeContent.style.display = 'flex';
@@ -71,9 +71,14 @@ export class TreeView {
         childrenContainer.style.display = 'none';
 
         if (hasChildren) {
-            node.children!.forEach(child => {
-                childrenContainer.appendChild(this.createNodeElement(child));
-            });
+            try {
+                node.children!.forEach(child => {
+                    const el = this.createNodeElement(child, `${path}.${node.name}`);
+                    childrenContainer.appendChild(el);
+                });
+            } catch (e) {
+                console.error("Failed to render child node:", node.name, e);
+            }
         }
 
         // Event handlers
@@ -87,13 +92,19 @@ export class TreeView {
 
         [iconContainer, label, typeIndicator].forEach((element) => {
             element.addEventListener('click', (event) => {
-                this.options.onNodeClick?.(node, event);
+                this.options.eventHandlers?.onClick?.({node, event});
+            });
+        });
+
+        [iconContainer, label, typeIndicator].forEach((element) => {
+            element.addEventListener('dblclick', (event) => {
+                this.options.eventHandlers?.onDoubleClick?.({node, event});
             });
         });
 
         nodeContent.addEventListener('contextmenu', (event) => {
             event.preventDefault();
-            this.options.onNodeContextMenu?.(node, event);
+            this.options.eventHandlers?.onContextMenu?.({node, event});
         });
 
         // Hover effect
@@ -112,20 +123,17 @@ export class TreeView {
 
     private render(data: SymbolNode[]): void {
 
-        console.log("TreeView Render");
         this.container.style.fontFamily = 'Consolas, "Courier New", monospace';
 
         const nodeContainer = document.createElement('div');
         nodeContainer.style.whiteSpace = "nowrap";
-        nodeContainer.style.overflow = "hidden";
         nodeContainer.style.textOverflow = "ellipsis";
-
+        nodeContainer.style.height = "100%"
+        nodeContainer.style.overflowY = "scroll"
 
         data.forEach(node => {
             nodeContainer.appendChild(this.createNodeElement(node));
         });
-
-        console.log("Finished creating nodes");
 
         const grabber = document.createElement('div');
         grabber.className = "grabber"
@@ -159,7 +167,6 @@ export class TreeView {
             e.clientX - this.container.getBoundingClientRect().left : 
             this.container.getBoundingClientRect().right - e.clientX;
 
-            console.log(`NEW WIDTH: ${newWidth}`)
             if (newWidth > 10 && newWidth < 500) {
                 this.container.style.width = `${newWidth}px`;
                 let parent = this.container.parentElement;

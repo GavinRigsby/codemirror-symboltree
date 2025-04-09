@@ -1,19 +1,17 @@
-import { EditorState, Extension, Facet, Prec, RangeSetBuilder, StateField } from '@codemirror/state';
-import { EditorView, ViewPlugin, WidgetType, DecorationSet, Decoration, ViewUpdate, GutterMarker, gutter, Panel, showPanel } from '@codemirror/view';
+
+import { defaultSymbolTreeOptions, NodeMouseEvent, SymbolNode, SymbolTreeOptionInputs, SymbolTreeOptions } from './SymbolNode';
+import { EditorView, ViewPlugin, WidgetType, ViewUpdate } from '@codemirror/view';
+import { EditorSelection } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { SyntaxNode } from '@lezer/common';
-import crelt from "crelt";
-import { defaultSymbolTreeOptions, SymbolNode, SymbolTreeOptionInputs, SymbolTreeOptions, TreeNodeEventHandler } from './SymbolNode';
 import { TreeView } from './TreeView';
-
-
-
+import crelt from "crelt";
 
 function displayTree(symbols: SymbolNode[], indent: string = '') {
     symbols.forEach(symbol => {
-        console.log(`${indent}${symbol.name} (${symbol.type})`);
         // If the node has children, recursively display them with increased indentation
         if (symbol.children && symbol.children.length > 0) {
+            console.log(`${indent}${symbol.name}:(${symbol.type})`)
             displayTree(symbol.children, indent + '  '); // Add some spaces for indentation
         }
     });
@@ -29,27 +27,21 @@ function extractSymbols(view: EditorView): SymbolNode[] {
         enter(node: SyntaxNode) {
             const name = view.state.doc.sliceString(node.from, node.to).trim();
             let newSymbol: SymbolNode | null = null;
-            const stackPath = "root" + stack.map(x => x.name).join(".");
-
             lastFiveNodes.push(node.type.name);
 
             if (lastFiveNodes.length > 5) {
                 lastFiveNodes.shift(); // Remove the oldest node
             }
 
-            //console.log(`FOUND: ${node.type.name} | ${name.split(" ")[0]}`)
-
             // Check if we found a FunctionDefinition (function or method)
             if (node.type.name == 'FunctionDefinition' || node.type.name == "FunctionDeclaration") {
                 // Create a placeholder function with the name "UnknownFunction"
                 newSymbol = { name: "UnknownFunction", children: [], type: node.type.name, range: [node.from, node.to] };
-                //console.log(`Pushing FunctionDefintion at ${stackPath}`);
             }
 
             if (node.type.name == 'InterfaceDeclaration') {
                 // Create a placeholder function with the name "UnknownFunction"
                 newSymbol = { name: "UnknownInterface", children: [], type: node.type.name, range: [node.from, node.to] };
-                //console.log(`Pushing InterfaceDeclaration at ${stackPath}`);
             }
 
             else if (node.type.name == "ClassDefinition" || node.type.name == "ClassExpression" || node.type.name == "ClassDeclaration") {
@@ -58,8 +50,6 @@ function extractSymbols(view: EditorView): SymbolNode[] {
 
             else if (node.type.name == 'AssignStatement' || node.type.name == "Declaration" || node.type.name == "VariableDeclaration") {
                 newSymbol = { name: "UnknownAssignment", type: node.type.name, range: [node.from, node.to] };
-                //console.log(name);
-                //console.log(`Found AssignStatement at ${stackPath}`);
             }
 
             else if (node.type.name == "Property" || node.type.name == "PropertyType" || node.type.name == "PropertyDeclaration") {
@@ -68,6 +58,17 @@ function extractSymbols(view: EditorView): SymbolNode[] {
 
             else if (node.type.name == "MethodDeclaration") {
                 newSymbol = { name: "UnknownMethod", type: node.type.name, range: [node.from, node.to] };
+            }
+
+            else if (node.type.name == "ClassBody") {
+                if (stack.length > 0) {
+                    const parent = stack[stack.length - 1];
+                    if (parent.name == "UnknownClass") {
+                        // Found class with no name
+                        parent.name = "<class>"
+                        parent.type = "Class"
+                    }
+                }
             }
 
             else if (node.type.name == "PropertyDefinition") {
@@ -84,6 +85,12 @@ function extractSymbols(view: EditorView): SymbolNode[] {
                         parent.name = name
                         parent.type = "Method"
                     }
+                } else {
+                    const lastSymbol = rootSymbols[rootSymbols.length - 1];
+                    if (lastSymbol.name == "UnknownProperty") {
+                        rootSymbols[rootSymbols.length - 1].name = name
+                        rootSymbols[rootSymbols.length - 1].type = "Property"
+                    }
                 }
             }
 
@@ -96,7 +103,6 @@ function extractSymbols(view: EditorView): SymbolNode[] {
                     if (stack[stack.length - 1].name === "UnknownFunction") {
                         stack[stack.length - 1].name = name;
                         stack[stack.length - 1].type = "Function";
-                        //console.log(`Updated function name to: ${name} at ${stackPath}`);
                     }
                     else if (stack[stack.length - 1].name === "UnknownClass") {
                         stack[stack.length - 1].name = name;
@@ -105,6 +111,10 @@ function extractSymbols(view: EditorView): SymbolNode[] {
                     else if (stack[stack.length - 1].name === "UnknownInterface") {
                         stack[stack.length - 1].name = name;
                         stack[stack.length - 1].type = "Interface";
+                    }
+                    else if (stack[stack.length - 1].name === "UnknownProperty") {
+                        stack[stack.length - 1].name = name;
+                        stack[stack.length - 1].type = "Property";
                     }
                     else {
                         // Found a variable but its not a function
@@ -119,7 +129,6 @@ function extractSymbols(view: EditorView): SymbolNode[] {
                                 }
                                 parent.children[parent.children.length - 1].name = name
                                 parent.children[parent.children.length - 1].type = "Variable"
-                                //console.log(`Updated Assignment Name to: ${name} at ${stackPath}`);
                             }
                         }
                     }
@@ -129,7 +138,6 @@ function extractSymbols(view: EditorView): SymbolNode[] {
                     if (rootSymbols[rootSymbols.length - 1].name == "UnknownAssignment") {
                         rootSymbols[rootSymbols.length - 1].name = name
                         rootSymbols[rootSymbols.length - 1].type = "Variable"
-                        // console.log(`Updated Assignment Name to: ${name} at ${stackPath}`);
                     }
                     else {
                         console.warn("UNHANDELED VARIABLE")
@@ -161,7 +169,6 @@ function extractSymbols(view: EditorView): SymbolNode[] {
 
                         if (parent.children && parent.children[parent.children.length - 1].type == "Variable") {
                             let prop = parent.children[parent.children.length - 1];
-                            //console.log(`convert variable to property: ${prop.name} => ${name}`)
                             if (prop.name == "self") {
                                 // This is actually a property on the current object
                                 let ClassIndex = stack.findLastIndex(item => item.type === "Class");
@@ -178,43 +185,28 @@ function extractSymbols(view: EditorView): SymbolNode[] {
 
             // Add it to the parent if there is one, otherwise, add to root symbols
             if (newSymbol) {
-                //console.log(`Pushing symbol to tree: ${newSymbol.name} at ${stackPath}`);
-                //console.log(newSymbol.type)
                 if (stack.length > 0) {
-                    //console.log("push to parent")
                     const parent = stack[stack.length - 1];
-                    //console.log(parent)
                     parent.children = parent.children || [];
                     parent.children.push(newSymbol);
                 } else {
-                    //console.log("push to root")
                     rootSymbols.push(newSymbol);
                 }
 
-                if (["FunctionDefinition", "ClassDefinition", "FunctionDeclaration", 'InterfaceDeclaration', "ClassDeclaration", "MethodDeclaration"].includes(newSymbol.type)) {
-                    //console.log("Push to function stack")
+                if (["FunctionDefinition", "ClassDefinition", "FunctionDeclaration", 'InterfaceDeclaration', "ClassDeclaration", "MethodDeclaration", "ClassExpression"].includes(newSymbol.type)) {
                     stack.push(newSymbol); // Push function onto the stack
                 }
-
-                //console.log("ROOT")
-                //console.log([...rootSymbols])
-                //console.log("STACK")
-                //console.log([...stack])
             }
 
         },
 
         leave(node: SyntaxNode) {
             // When leaving a function definition, pop it from the stack
-            if (["FunctionDefinition", "ClassDefinition", "FunctionDeclaration", 'InterfaceDeclaration', "ClassDeclaration", "MethodDeclaration"].includes(node.type.name)) {
+            if (["FunctionDefinition", "ClassDefinition", "FunctionDeclaration", 'InterfaceDeclaration', "ClassDeclaration", "MethodDeclaration", "ClassExpression"].includes(node.type.name)) {
                 stack.pop();
             }
         }
     });
-
-
-    //console.log("display Tree")
-    //displayTree(rootSymbols)
     return rootSymbols;
 }
 
@@ -228,10 +220,9 @@ export const SymbolTreePlugin = ViewPlugin.fromClass(
             const symbols = extractSymbols(view);
             this.symbolSidebarWidget = new SymbolSidebarWidget(symbols, view, this.options);
             this.mountSidebarToView(view);
-            console.log("TreePlugin Contructor Done");
         }
 
-        public updateOptions(options: SymbolTreeOptionInputs){
+        public updateOptions(options: SymbolTreeOptionInputs) {
             this.options = { ...this.options, ...options };
             this.updateSidebarVisibility();
             this.updateSidebarPosition();
@@ -251,7 +242,12 @@ export const SymbolTreePlugin = ViewPlugin.fromClass(
         update(update: ViewUpdate) {
             if (update.docChanged) {
                 const symbols = extractSymbols(update.view);
+                const container = update.view.dom;
+                if (container.contains(this.symbolSidebarWidget.container)) {
+                    container.removeChild(this.symbolSidebarWidget.container)
+                }
                 this.symbolSidebarWidget = new SymbolSidebarWidget(symbols, update.view, this.options);
+                this.mountSidebarToView(update.view)
             }
         }
 
@@ -264,6 +260,7 @@ export const SymbolTreePlugin = ViewPlugin.fromClass(
             if (!container.contains(this.symbolSidebarWidget.container)) {
                 container.appendChild(this.symbolSidebarWidget.container);
                 this.symbolSidebarWidget.styleSidebar(this.options.side);
+            } else {
             }
         }
     }
@@ -273,16 +270,18 @@ export const SymbolTreePlugin = ViewPlugin.fromClass(
 
 class SymbolSidebarWidget extends WidgetType {
     private view: EditorView;
-    private treeView : TreeView;
+    private treeView: TreeView;
     container: HTMLElement;
 
     constructor(symbols: SymbolNode[], view: EditorView, options: SymbolTreeOptions) {
         super();
-        console.log("Widget Contructor");
         this.view = view; // Store the view reference for scrollToSymbol
         this.container = crelt('div', { class: 'symbol-sidebar' });
         this.treeView = new TreeView(this.container, symbols, {
-            onNodeClick: this.scrollToSymbol.bind(this), // Default scroll to selection
+            eventHandlers: {
+                onClick: this.scrollToSymbol.bind(this),
+                onDoubleClick: this.highlightSymbol.bind(this)
+            },
             ...options
         })
     }
@@ -292,10 +291,10 @@ class SymbolSidebarWidget extends WidgetType {
     }
 
     // Scroll the editor to the symbol's line
-    scrollToSymbol(node: SymbolNode, event: MouseEvent) {
+    scrollToSymbol(event: NodeMouseEvent) {
         // Ensure the view is valid
-        if (this.view && typeof this.view.lineBlockAt === 'function'){
-            let block = this.view.lineBlockAt(node.range[0]);
+        if (this.view && typeof this.view.lineBlockAt === 'function') {
+            let block = this.view.lineBlockAt(event.node.range[0]);
 
             // Check if block is defined
             if (block) {
@@ -306,6 +305,22 @@ class SymbolSidebarWidget extends WidgetType {
         } else {
             console.error('Editor view is not initialized or lineBlockAt is unavailable');
         }
+    }
+
+    highlightSymbol(event: NodeMouseEvent) {
+        if (!this.view) {
+            console.error("Editor view not initialized");
+            return;
+        }
+
+        const from = event.node.range[0];
+        const to = event.node.range[1];
+
+        // Set the selection to the range
+        this.view.dispatch({
+            selection: EditorSelection.range(from, to),
+            scrollIntoView: true,
+        });
     }
 
     // Update visibility of the sidebar
@@ -332,11 +347,8 @@ class SymbolSidebarWidget extends WidgetType {
 
         let rect = this.container.getBoundingClientRect()
         let size = rect.right - rect.left; //size of rectangle
-        console.log(`CONTAINER PADDING ${size}`)
         // Ensure the sidebar doesn't affect the editor's scroll
         this.view.dom.style.paddingLeft = side === 'left' ? `${size}px` : '0';
         this.view.dom.style.paddingRight = side === 'right' ? `${size}px` : '0';
-
-        
     }
 }
