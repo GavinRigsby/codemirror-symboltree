@@ -104,7 +104,7 @@ export class TreeView {
 
         nodeContent.addEventListener('contextmenu', (event) => {
             event.preventDefault();
-            this.options.eventHandlers?.onContextMenu?.({node, event});
+            this.options.eventHandlers?.onRightClick?.({node, event});
         });
 
         // Hover effect
