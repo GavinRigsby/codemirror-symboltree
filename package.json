@@ -1,5 +1,5 @@
 {
-  "name": "codemirror-symboltree",
+  "name": "@rigstech/codemirror-symboltree",
   "version": "1.0.0",
   "description": "Shows a symbol tree in the gutter of the codemirror editor",
   "main": "dist/index.js",
@@ -10,6 +10,14 @@
     "require": "./dist/index.js",
     "default": "./dist/index.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GavinRigsby/codemirror-symboltree.git"
+  },
+  "keywords": ["codemirror-symboltree", "typescript", "codemirror", "syntax-tree", "treeview", "codemirror-extension"],
   "scripts": {
     "clean": "del-cli dist",
     "build": "tsup",
