@@ -210,10 +210,10 @@ function extractSymbols(view: EditorView): SymbolNode[] {
     return rootSymbols;
 }
 
-export const SymbolTreePlugin = ViewPlugin.fromClass(
+export const SymbolTree = ViewPlugin.fromClass(
     class {
-        private symbolSidebarWidget: SymbolSidebarWidget;
-        private options: SymbolTreeOptions;
+        public symbolSidebarWidget: SymbolSidebarWidget;
+        public options: SymbolTreeOptions;
 
         constructor(view: EditorView) {
             this.options = { ...defaultSymbolTreeOptions };

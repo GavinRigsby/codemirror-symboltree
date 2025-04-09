@@ -2,11 +2,20 @@
   "name": "codemirror-symboltree",
   "version": "1.0.0",
   "description": "Shows a symbol tree in the gutter of the codemirror editor",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "import": "./dist/index.mjs",
+    "require": "./dist/index.js",
+    "default": "./dist/index.js"
+  },
   "scripts": {
-		"build": "tsc",
-    "start": "node ./dist/index.js"
-	},
+    "clean": "del-cli dist",
+    "build": "tsup",
+    "dev": "tsup src/index.ts --watch --onSuccess \"npm start\"",
+    "start": "node dist/index.js"
+  },
   "author": {
     "name": "Gavin Rigsby",
     "email": "gavinrigsby@outlook.com"
@@ -19,5 +28,10 @@
     "@codemirror/view": "^6.36.5",
     "@lezer/common": "^1.2.3",
     "@lezer/highlight": "^1.2.1"
+  },
+  "devDependencies": {
+    "del-cli": "^6.0.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
   }
 }
