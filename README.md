@@ -118,6 +118,4 @@ We welcome contributions! If you'd like to improve the extension, fix bugs, or a
 This project is licensed under the MIT License.
 
 ---
-
 For more information, check out the [CodeMirror documentation](https://codemirror.net/) and the [Codicons library](https://microsoft.github.io/vscode-codicons/).
-```
